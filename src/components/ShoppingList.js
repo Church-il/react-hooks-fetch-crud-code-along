@@ -1,32 +1,58 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ItemForm from "./ItemForm";
 import Filter from "./Filter";
 import Item from "./Item";
 
 function ShoppingList() {
-  const [selectedCategory, setSelectedCategory] = useState("All");
   const [items, setItems] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  function handleCategoryChange(category) {
-    setSelectedCategory(category);
+  useEffect(() => {
+    fetch("http://localhost:4000/items")
+      .then((response) => response.json())
+      .then((items) => setItems(items));
+  }, []);
+
+  function handleAddItem(newItem) {
+    setItems([...items, { ...newItem, isInCart: false }]);
   }
 
-  const itemsToDisplay = items.filter((item) => {
-    if (selectedCategory === "All") return true;
+  function handleDeleteItem(deletedItem) {
+    setItems(items.filter((item) => item.id !== deletedItem.id));
+  }
 
-    return item.category === selectedCategory;
-  });
+  function handleUpdateItem(updatedItem) {
+    const updatedItems = items.map((item) =>
+      item.id === updatedItem.id ? updatedItem : item
+    );
+    setItems(updatedItems);
+  }
+
+  const itemsToDisplay = items
+    .filter((item) => {
+      if (selectedCategory === "All") return true;
+      return item.category === selectedCategory;
+    })
+    .filter((item) => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div className="ShoppingList">
-      <ItemForm />
+      <ItemForm onAddItem={handleAddItem} />
       <Filter
-        category={selectedCategory}
-        onCategoryChange={handleCategoryChange}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
       />
       <ul className="Items">
-        {itemsToDisplay.map((item) => (
-          <Item key={item.id} item={item} />
+        {itemsToDisplay.map((item, index) => (
+          <Item
+            key={item.id} // Use unique item ID
+            item={item}
+            onDeleteItem={handleDeleteItem}
+            onUpdateItem={handleUpdateItem}
+          />
         ))}
       </ul>
     </div>
